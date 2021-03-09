@@ -8,9 +8,7 @@ import glob from 'glob-promise';
 import * as path from 'path';
 import * as assert from 'assert';
 import * as fs from 'fs-extra';
-import { Image as I } from '@pipcook/datacook';
-const Image = I.default;
-type ImageSample = Sample<I.default>;
+import { Image } from './datacook';
 /**
  * collect the data either from remote url or local file system. It expects a zip
  * which contains the structure of traditional image classification data folder.
@@ -28,13 +26,15 @@ type ImageSample = Sample<I.default>;
  *
  * @param url path of the data, if it comes from local file, please add file:// as prefix
  */
-const imageClassDataCollect = async (options: Record<string, any>): Promise<DataSourceApi<I.default>> => {
+const imageClassDataCollect = async (options: Record<string, any>, context: any): Promise<DataSourceApi<any>> => {
   let {
     url = '',
     dataDir
   } = options;
 
   await fs.ensureDir(dataDir);
+
+  const tf = context.framework['@tensorflow/tfjs-node']
 
   assert.ok(url, 'Please specify the url of your dataset');
 
@@ -85,8 +85,7 @@ const imageClassDataCollect = async (options: Record<string, any>): Promise<Data
       test.push({ data: imagePath, label: categoryIndex});
     }
   }
-
-  const sample = await Image.read(train[0].data);
+  const sample = await Image.read(train[0].data, tf);
 
   const meta: ImageDataSourceMeta = {
     type: DataSourceType.Image,
@@ -104,23 +103,24 @@ const imageClassDataCollect = async (options: Record<string, any>): Promise<Data
     labelMap: categories
   }
 
-  const nextTest = async (): Promise<ImageSample | null > => {
+  const nextTest = async (): Promise<any | null > => {
     const sample = test[testOffset++];
     return sample ? {
-      data: await Image.read(sample.data),
+      data: await Image.read(sample.data, tf),
       label: sample.label
     } : null;
   }
 
-  const nextTrain = async (): Promise<ImageSample | null > => {
+  const nextTrain = async (): Promise<any | null > => {
     const sample = train[trainOffset++];
-    return sample ? {
-      data: await Image.read(sample.data),
+    const ret = sample ? {
+      data: await Image.read(sample.data, tf),
       label: sample.label
     } : null;
+    return ret;
   }
 
-  const nextBatchTest = async (batchSize: number): Promise<Array<ImageSample> | null > => {
+  const nextBatchTest = async (batchSize: number): Promise<Array<any> | null > => {
     const buffer = [];
     while (batchSize) {
       buffer.push(nextTest());
@@ -129,7 +129,7 @@ const imageClassDataCollect = async (options: Record<string, any>): Promise<Data
     return Promise.all(buffer);
   }
 
-  const nextBatchTrain = async (batchSize: number): Promise<Array<ImageSample> | null > => {
+  const nextBatchTrain = async (batchSize: number): Promise<Array<any> | null > => {
     const buffer = [];
     while (batchSize) {
       buffer.push(nextTrain());
@@ -148,12 +148,16 @@ const imageClassDataCollect = async (options: Record<string, any>): Promise<Data
 
   return {
     getDataSourceMeta: async () => meta,
-    nextTest,
-    nextTrain,
-    nextBatchTest,
-    nextBatchTrain,
-    seekTest,
-    seekTrain
+    train: {
+      next: nextTrain,
+      nextBatch: nextBatchTrain,
+      seek: seekTrain
+    },
+    test: {
+      next: nextTest,
+      nextBatch: nextBatchTest,
+      seek: seekTest,
+    }
   }
 };
 
