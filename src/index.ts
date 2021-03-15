@@ -8,7 +8,6 @@ import glob from 'glob-promise';
 import * as path from 'path';
 import * as assert from 'assert';
 import * as fs from 'fs-extra';
-import { Image } from './datacook';
 /**
  * collect the data either from remote url or local file system. It expects a zip
  * which contains the structure of traditional image classification data folder.
@@ -29,12 +28,12 @@ import { Image } from './datacook';
 const imageClassDataCollect = async (options: Record<string, any>, context: any): Promise<DataSourceApi<any>> => {
   let {
     url = '',
-    dataDir
+    workspace
   } = options;
 
-  await fs.ensureDir(dataDir);
+  const { dataDir } = workspace;
 
-  const tf = context.framework['@tensorflow/tfjs-node']
+  await fs.ensureDir(dataDir);
 
   assert.ok(url, 'Please specify the url of your dataset');
 
@@ -85,7 +84,7 @@ const imageClassDataCollect = async (options: Record<string, any>, context: any)
       test.push({ data: imagePath, label: categoryIndex});
     }
   }
-  const sample = await Image.read(train[0].data, tf);
+  const sample = await context.dataCook.Image.read(train[0].data);
 
   const meta: ImageDataSourceMeta = {
     type: DataSourceType.Image,
@@ -106,7 +105,7 @@ const imageClassDataCollect = async (options: Record<string, any>, context: any)
   const nextTest = async (): Promise<any | null > => {
     const sample = test[testOffset++];
     return sample ? {
-      data: await Image.read(sample.data, tf),
+      data: await context.dataCook.Image.read(sample.data),
       label: sample.label
     } : null;
   }
@@ -114,7 +113,7 @@ const imageClassDataCollect = async (options: Record<string, any>, context: any)
   const nextTrain = async (): Promise<any | null > => {
     const sample = train[trainOffset++];
     const ret = sample ? {
-      data: await Image.read(sample.data, tf),
+      data: await context.dataCook.Image.read(sample.data),
       label: sample.label
     } : null;
     return ret;
