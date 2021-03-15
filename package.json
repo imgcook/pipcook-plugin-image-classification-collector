@@ -17,7 +17,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@pipcook/pipcook-core": "file://Users/ericli/Desktop/pipcook/packages/core",
+    "@pipcook/pipcook-core": "^2.0.0-alpha.4",
     "@tensorflow/tfjs": "^2.8.3",
     "@types/fs-extra": "^8.1.0",
     "fs-extra": "^8.1.0",
