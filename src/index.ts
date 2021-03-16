@@ -3,7 +3,7 @@
  * the data is conform to expectation.
  */
 
-import { DataSourceApi, generateId, download, unZipData, ImageDataSourceMeta, DataSourceType, Sample } from "@pipcook/pipcook-core"
+import { DataSourceApi, generateId, download, unZipData, ImageDataSourceMeta, DataSourceType, shuffle } from "@pipcook/pipcook-core"
 import glob from 'glob-promise';
 import * as path from 'path';
 import * as assert from 'assert';
@@ -58,7 +58,7 @@ const imageClassDataCollect = async (options: Record<string, any>, context: any)
   console.log('unzip and collecting data...');
   await unZipData(targetPath, imageDir);
   await fs.remove(targetPath);
-  const imagePaths = await glob(path.join(imageDir, '**', '+(train|validation|test)', '*', '*.+(jpg|jpeg|png)'));
+  let imagePaths = await glob(path.join(imageDir, '**', '+(train|validation|test)', '*', '*.+(jpg|jpeg|png)'));
 
   // TODO utils for making dataset
   const train: any[] = [];
@@ -66,7 +66,7 @@ const imageClassDataCollect = async (options: Record<string, any>, context: any)
   const test: any[] = [];
   let testOffset = 0;
   const categories: Array<string> = [];
-
+  shuffle(imagePaths);
   for (const imagePath of imagePaths) {
     const splitString = imagePath.split(path.sep);
     const trainType = splitString[splitString.length - 3];
