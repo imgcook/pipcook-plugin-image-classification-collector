@@ -26,14 +26,17 @@ import * as fs from 'fs-extra';
  * @param url path of the data, if it comes from local file, please add file:// as prefix
  */
 const imageClassDataCollect = async (options: Record<string, any>, context: any): Promise<DataSourceApi<any>> => {
-  let {
-    url = '',
-    workspace
+  const {
+    url = ''
   } = options;
+
+  const { workspace } = context;
 
   const { dataDir } = workspace;
 
   await fs.ensureDir(dataDir);
+
+  let isDownload = false;
 
   assert.ok(url, 'Please specify the url of your dataset');
 
@@ -41,8 +44,6 @@ const imageClassDataCollect = async (options: Record<string, any>, context: any)
   const extention = fileName.split('.');
 
   assert.ok(extention[extention.length - 1] === 'zip', 'The dataset provided should be a zip file');
-
-  let isDownload = false;
 
   let targetPath: string;
   if (/^file:\/\/.*/.test(url)) {
@@ -125,7 +126,7 @@ const imageClassDataCollect = async (options: Record<string, any>, context: any)
       buffer.push(nextTest());
       batchSize --;
     }
-    return Promise.all(buffer);
+    return (await Promise.all(buffer)).filter(it => it);
   }
 
   const nextBatchTrain = async (batchSize: number): Promise<Array<any> | null > => {
